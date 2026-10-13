@@ -1,0 +1,36 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:hisvpn/common/boot_guard.dart';
+import 'package:hisvpn/common/common.dart';
+import 'package:hisvpn/common/system_dns.dart';
+import 'package:hisvpn/core/core.dart';
+import 'package:hisvpn/database/database.dart';
+import 'package:hisvpn/enum/enum.dart';
+import 'package:hisvpn/models/models.dart';
+import 'package:hisvpn/plugins/app.dart';
+import 'package:hisvpn/plugins/service.dart';
+import 'package:hisvpn/providers/actions/system_exit.dart';
+import 'package:hisvpn/providers/providers.dart';
+import 'package:hisvpn/state.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' show basename, join;
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+part 'actions/common.dart';
+part 'actions/setup.dart';
+part 'actions/backup.dart';
+part 'actions/core.dart';
+part 'actions/system.dart';
+part 'actions/store.dart';
+part 'actions/theme.dart';
+part 'actions/proxies.dart';
+part 'actions/profiles.dart';
+part 'actions/scripts.dart';
+part 'actions/clash_providers.dart';
+part 'actions/geo_resource.dart';
+part 'actions/updating.dart';
+part 'generated/action.g.dart';

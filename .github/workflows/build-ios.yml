@@ -1,0 +1,65 @@
+name: build-ios
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: build-ios-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: '3.47.4'
+  GO_VERSION: '1.26.4'
+
+jobs:
+  ios:
+    name: iOS unsigned IPA
+    runs-on: macos-14
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Resolve Dart dependencies
+        run: flutter pub get
+
+      # The plugins/setup build hook compiles the Go core for ios/arm64
+      # (c-shared) into libclash/ios/arm64/libclash.dylib automatically.
+      - name: Build iOS app (unsigned)
+        run: flutter build ios --release --no-codesign
+
+      - name: Embed Go core dylib into the app bundle
+        run: |
+          APP="build/ios/iphoneos/Runner.app"
+          test -f "libclash/ios/arm64/libclash.dylib" || {
+            echo "::error::Go core dylib missing; check .dart_tool/setup_build_cache/hook.log"
+            exit 1
+          }
+          mkdir -p "$APP/Frameworks"
+          cp libclash/ios/arm64/libclash.dylib "$APP/Frameworks/"
+
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p build/ipa/Payload
+          cp -R build/ios/iphoneos/Runner.app build/ipa/Payload/
+          cd build/ipa
+          zip -qry HISVPN-unsigned.ipa Payload
+          ls -lh HISVPN-unsigned.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HISVPN-unsigned-ipa
+          path: build/ipa/HISVPN-unsigned.ipa

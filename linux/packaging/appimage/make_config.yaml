@@ -1,0 +1,23 @@
+display_name: HISVPN
+
+icon: ./assets/images/icon.png
+
+supported_mime_type:
+  - x-scheme-handler/clash
+  - x-scheme-handler/clashmeta
+  - x-scheme-handler/hisvpn
+
+keywords:
+  - HISVPN
+  - Clash
+  - ClashMeta
+  - Proxy
+
+generic_name: HISVPN
+
+categories:
+  - Network
+
+startup_notify: true
+
+include: []
