@@ -13,9 +13,11 @@ import UIKit
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     let registry = engineBridge.pluginRegistry
     GeneratedPluginRegistrant.register(with: registry)
-    CoreBridge.shared.install(
-      messenger: registry.registrar(forPlugin: "HISVPNCoreBridge").messenger()
-    )
+    guard let registrar = registry.registrar(forPlugin: "HISVPNCoreBridge") else {
+      NSLog("[HISVPN] no registrar; core bridge not installed")
+      return
+    }
+    CoreBridge.shared.install(messenger: registrar.messenger())
   }
 }
 
@@ -239,12 +241,12 @@ final class CoreBridge {
     Unmanaged.passRetained(CallbackBox(onResult: onResult)).toOpaque()
   }
 
-  private func releaseObject(_ pointer: UnsafeMutableRawPointer?) {
+  func releaseObject(_ pointer: UnsafeMutableRawPointer?) {
     guard let pointer else { return }
     Unmanaged<CallbackBox>.fromOpaque(pointer).release()
   }
 
-  private func deliverResult(_ pointer: UnsafeMutableRawPointer?, _ data: UnsafePointer<CChar>?) {
+  func deliverResult(_ pointer: UnsafeMutableRawPointer?, _ data: UnsafePointer<CChar>?) {
     guard let pointer else { return }
     let box = Unmanaged<CallbackBox>.fromOpaque(pointer).takeUnretainedValue()
     box.onResult(data.map { String(cString: $0) })
