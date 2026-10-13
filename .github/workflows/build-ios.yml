@@ -43,6 +43,15 @@ jobs:
       - name: Resolve Dart dependencies
         run: flutter pub get
 
+      # The setup hook is replaced by the explicit Go build below, and the
+      # rust_api hook does not support iOS (upstream ships no aarch64-apple-ios
+      # target and its darwin deps do not compile there), so turn both native
+      # build hooks into no-ops for this build only.
+      - name: Disable native build hooks for the iOS build
+        run: |
+          perl -0pi -e 's/build_assets: true/build_assets: false/g' pubspec.yaml
+          grep -A6 "user_defines" pubspec.yaml
+
       # Build the Go core for ios/arm64 explicitly. c-shared is not supported
       # on ios/arm64, so the core is built as a c-archive and linked into a
       # dylib with clang (side-loadable, embeds the same C ABI as the
