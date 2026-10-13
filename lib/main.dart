@@ -28,7 +28,11 @@ void main(List<String> args) {
         });
       };
       try {
-        await RustLib.init();
+        // iOS ships no rust_api library (the editor stays unavailable there;
+        // see lib/pages/editor.dart, which handles the uninitialized state).
+        if (!Platform.isIOS) {
+          await RustLib.init();
+        }
         final version = await system.init();
         final container = await bootstrap.init(version);
         HttpOverrides.global = HISVPNHttpOverrides(container);
