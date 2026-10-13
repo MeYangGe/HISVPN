@@ -43,10 +43,10 @@ jobs:
       - name: Resolve Dart dependencies
         run: flutter pub get
 
-      # Build the Go core for ios/arm64 explicitly. The plugins/setup build
-      # hook compiles this automatically for android/desktop targets; on iOS
-      # we drive the same cgo build ourselves so the toolchain is observable
-      # in the log (core/lib.go exports the same C ABI as the Android .so).
+      # Build the Go core for ios/arm64 explicitly. c-shared is not supported
+      # on ios/arm64, so the core is built as a c-archive and linked into a
+      # dylib with clang (side-loadable, embeds the same C ABI as the
+      # Android .so, see core/lib.go).
       - name: Build Go core for ios/arm64
         run: |
           cd core
@@ -56,8 +56,12 @@ jobs:
           CGO_ENABLED=1 GOOS=ios GOARCH=arm64 CC=clang \
           CGO_CFLAGS="-isysroot $SDK -arch arm64 -miphoneos-version-min=15.0 -O3" \
           CGO_LDFLAGS="-isysroot $SDK -arch arm64 -miphoneos-version-min=15.0" \
-          go build -tags with_gvisor -buildmode=c-shared -ldflags "-w -s" \
-            -o ../libclash/ios/arm64/libclash.dylib .
+          go build -tags with_gvisor -buildmode=c-archive -ldflags "-w -s" \
+            -o ../libclash/ios/arm64/libclash.a .
+          clang -arch arm64 -isysroot "$SDK" -miphoneos-version-min=15.0 \
+            -dynamiclib -o ../libclash/ios/arm64/libclash.dylib \
+            ../libclash/ios/arm64/libclash.a \
+            -framework CoreFoundation
           ls -lh ../libclash/ios/arm64/
 
       - name: Build iOS app (unsigned)

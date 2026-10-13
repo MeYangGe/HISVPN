@@ -68,9 +68,6 @@ class Target {
 
   String get platformDir => goos == 'darwin' ? 'macos' : goos;
 
-  /// The dylib that Xcode embeds into the iOS app bundle.
-  String get iosLibraryName => 'libclash.dylib';
-
   String get ndkTriple => switch (abi) {
     'armeabi-v7a' => 'armv7a-linux-androideabi',
     'arm64-v8a' => 'aarch64-linux-android',

@@ -60,7 +60,7 @@ class GoBuilder {
     final fileName = target.isLib
         ? '${config.libName}.so'
         : target.isIos
-        ? target.iosLibraryName
+        ? '${config.libName}.a'
         : '${config.coreName}${target.executableExtension}';
     final outFile = p.join(outDir, fileName);
 
@@ -169,7 +169,10 @@ class GoBuilder {
     'build',
     '-ldflags=${_ldflags(target)}',
     '-tags=${config.tags}',
-    if (target.isLib || target.isIos) '-buildmode=c-shared',
+    // c-shared is not supported on ios/arm64; the dylib for the app bundle
+    // is linked from the c-archive by the CI (clang -dynamiclib).
+    if (target.isLib) '-buildmode=c-shared',
+    if (target.isIos) '-buildmode=c-archive',
     if (outFile != null) ...['-o', outFile],
   ];
 
