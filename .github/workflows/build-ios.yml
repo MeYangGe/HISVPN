@@ -64,8 +64,23 @@ jobs:
             -framework CoreFoundation
           ls -lh ../libclash/ios/arm64/
 
+      # Xcode 26 rejects a device build without a Development Team even with
+      # flutter's --no-codesign; drive xcodebuild directly with signing
+      # disabled to produce the unsigned Runner.app.
       - name: Build iOS app (unsigned)
-        run: flutter build ios --release --no-codesign
+        run: |
+          flutter build ios --release --no-codesign --config-only
+          cd ios
+          set -o pipefail
+          xcodebuild -workspace Runner.xcworkspace -scheme Runner \
+            -configuration Release -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath ../build/ios/dd \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            2>&1 | tee ../build/xcodebuild.log | tail -40
+          APP="../build/ios/dd/Build/Products/Release-iphoneos/Runner.app"
+          test -d "$APP" || { echo "::error::Runner.app not produced"; exit 1; }
+          echo "Built: $APP"
 
       - name: Log the setup build hook output (diagnostics)
         if: always()
@@ -78,7 +93,7 @@ jobs:
 
       - name: Embed Go core dylib into the app bundle
         run: |
-          APP="build/ios/iphoneos/Runner.app"
+          APP="build/ios/dd/Build/Products/Release-iphoneos/Runner.app"
           test -f "libclash/ios/arm64/libclash.dylib" || {
             echo "::error::Go core dylib missing"
             exit 1
@@ -89,7 +104,7 @@ jobs:
       - name: Package unsigned IPA
         run: |
           mkdir -p build/ipa/Payload
-          cp -R build/ios/iphoneos/Runner.app build/ipa/Payload/
+          cp -R build/ios/dd/Build/Products/Release-iphoneos/Runner.app build/ipa/Payload/
           cd build/ipa
           zip -qry HISVPN-unsigned.ipa Payload
           ls -lh HISVPN-unsigned.ipa
