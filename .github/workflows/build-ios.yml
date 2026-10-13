@@ -17,7 +17,7 @@ env:
 jobs:
   ios:
     name: iOS unsigned IPA
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
@@ -33,19 +33,50 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
 
+      - name: Select the newest installed Xcode
+        run: |
+          XCODE_PATH=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          echo "Using $XCODE_PATH"
+          sudo xcode-select -s "$XCODE_PATH"
+          xcodebuild -version
+
       - name: Resolve Dart dependencies
         run: flutter pub get
 
-      # The plugins/setup build hook compiles the Go core for ios/arm64
-      # (c-shared) into libclash/ios/arm64/libclash.dylib automatically.
+      # Build the Go core for ios/arm64 explicitly. The plugins/setup build
+      # hook compiles this automatically for android/desktop targets; on iOS
+      # we drive the same cgo build ourselves so the toolchain is observable
+      # in the log (core/lib.go exports the same C ABI as the Android .so).
+      - name: Build Go core for ios/arm64
+        run: |
+          cd core
+          SDK=$(xcrun --sdk iphoneos --show-sdk-path)
+          echo "iphoneos SDK: $SDK"
+          mkdir -p ../libclash/ios/arm64
+          CGO_ENABLED=1 GOOS=ios GOARCH=arm64 CC=clang \
+          CGO_CFLAGS="-isysroot $SDK -arch arm64 -miphoneos-version-min=15.0 -O3" \
+          CGO_LDFLAGS="-isysroot $SDK -arch arm64 -miphoneos-version-min=15.0" \
+          go build -tags with_gvisor -buildmode=c-shared -ldflags "-w -s" \
+            -o ../libclash/ios/arm64/libclash.dylib .
+          ls -lh ../libclash/ios/arm64/
+
       - name: Build iOS app (unsigned)
         run: flutter build ios --release --no-codesign
+
+      - name: Log the setup build hook output (diagnostics)
+        if: always()
+        run: |
+          if [ -f .dart_tool/setup_build_cache/hook.log ]; then
+            cat .dart_tool/setup_build_cache/hook.log
+          else
+            echo "no setup hook log; the hook did not run"
+          fi
 
       - name: Embed Go core dylib into the app bundle
         run: |
           APP="build/ios/iphoneos/Runner.app"
           test -f "libclash/ios/arm64/libclash.dylib" || {
-            echo "::error::Go core dylib missing; check .dart_tool/setup_build_cache/hook.log"
+            echo "::error::Go core dylib missing"
             exit 1
           }
           mkdir -p "$APP/Frameworks"
