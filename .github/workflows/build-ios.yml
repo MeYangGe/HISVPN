@@ -77,10 +77,17 @@ jobs:
             -destination 'generic/platform=iOS' \
             -derivedDataPath ../build/ios/dd \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
-            2>&1 | tee ../build/xcodebuild.log | tail -40
+            2>&1 | tee ../build/xcodebuild.log
           APP="../build/ios/dd/Build/Products/Release-iphoneos/Runner.app"
           test -d "$APP" || { echo "::error::Runner.app not produced"; exit 1; }
           echo "Built: $APP"
+
+      - name: Upload xcodebuild log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: build/xcodebuild.log
 
       - name: Log the setup build hook output (diagnostics)
         if: always()
