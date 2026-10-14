@@ -30,7 +30,7 @@ import UIKit
       case "appGroupPath":
         result(
           FileManager.default.containerURL(
-            securityGroupDomainID: "group.com.hisvpn"
+            forSecurityApplicationGroupIdentifier: "group.com.hisvpn"
           )?.path
         )
       default:

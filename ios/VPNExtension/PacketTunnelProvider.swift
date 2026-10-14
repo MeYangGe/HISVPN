@@ -25,7 +25,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
   }
 
   override func startTunnel(
-    _ options: [String: NSObject]?,
+    options: [String: NSObject]?,
     completionHandler: @escaping (Error?) -> Void
   ) {
     let log = OSLog(subsystem: "com.hisvpn", category: "tunnel")
@@ -45,7 +45,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
     // process maintains (config.yaml, profiles, database).
     guard
       let groupURL = FileManager.default.containerURL(
-        securityGroupDomainID: "group.com.hisvpn"
+        forSecurityApplicationGroupIdentifier: "group.com.hisvpn"
       )
     else {
       os_log("App Group container missing", log: log, type: .error)
@@ -158,7 +158,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
   }
 
   override func stopTunnel(
-    _ reason: NEProviderStopReason,
+    with reason: NEProviderStopReason,
     completionHandler: @escaping () -> Void
   ) {
     stopTun()
