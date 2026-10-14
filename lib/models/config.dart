@@ -62,6 +62,7 @@ final List<HotKeyAction> defaultHotKeyActions = system.isWindows
       ];
 
 const List<DashboardWidget> defaultDashboardWidgets = [
+  DashboardWidget.vpnButton,
   DashboardWidget.networkSpeed,
   DashboardWidget.systemProxyButton,
   DashboardWidget.tunButton,

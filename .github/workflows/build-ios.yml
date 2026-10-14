@@ -73,6 +73,7 @@ jobs:
             -dynamiclib \
             -install_name @rpath/HISVPNCore.framework/HISVPNCore \
             -o "$OUT/HISVPNCore" \
+            -Wl,-force_load,"$OUT/libclash.a" \
             "$OUT/libclash.a" \
             -framework CoreFoundation
           FW="$OUT/HISVPNCore.framework"

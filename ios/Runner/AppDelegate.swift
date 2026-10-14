@@ -118,6 +118,12 @@ final class CoreBridge {
     releaseObjectFn = unsafeBitCast(symbol("release_object_func"), to: ReleaseObjectFn.self)
     freeStringFn = unsafeBitCast(symbol("free_string_func"), to: FreeStringFn.self)
 
+    guard invokeMethodFn != nil else {
+      coreLoadError = "core loaded but export 'invokeMethod' missing (dylib built without -force_load?)"
+      NSLog("[HISVPN] %@", coreLoadError)
+      return
+    }
+
     installHostCallbacks()
     NSLog("[HISVPN] Core bridge installed")
   }
