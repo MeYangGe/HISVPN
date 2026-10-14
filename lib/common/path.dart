@@ -48,6 +48,19 @@ class AppPath {
   /// On iOS the home directory must live in the App Group container so the
   /// NetworkExtension tunnel process reads the same database, profiles and
   /// config.yaml the app writes. Everywhere else keeps the support dir.
+  static void _copyTree(String from, String to) {
+    final src = Directory(from);
+    Directory(to).createSync(recursive: true);
+    for (final entity in src.listSync()) {
+      final target = join(to, basename(entity.path));
+      if (entity is Directory) {
+        _copyTree(entity.path, target);
+      } else if (entity is File) {
+        entity.copySync(target);
+      }
+    }
+  }
+
   Future<Directory> _resolveDataDir() async {
     final fallback = await supportDirectory();
     if (!Platform.isIOS) {
@@ -62,12 +75,25 @@ class AppPath {
       final groupDir = Directory(groupPath);
       await groupDir.create(recursive: true);
       // One-shot migration from the pre-tunnel sandbox layout so existing
-      // subscriptions and settings survive the move.
+      // subscriptions and settings survive the move. We COPY, never move:
+      // rename across container boundaries can fail with EXDEV and a failed
+      // move would leave the source in a half-moved state, silently dropping
+      // profiles and hiding the start button. Copying keeps the sandbox copy
+      // intact as a fallback.
       if (groupDir.listSync().isEmpty &&
           fallback.existsSync() &&
           fallback.listSync().isNotEmpty) {
         for (final entity in fallback.listSync()) {
-          entity.renameSync(join(groupPath, basename(entity.path)));
+          try {
+            final target = join(groupPath, basename(entity.path));
+            if (entity is Directory) {
+              _copyTree(entity.path, target);
+            } else if (entity is File) {
+              entity.copySync(target);
+            }
+          } catch (_) {
+            // A single unreadable entry must not abort the whole migration.
+          }
         }
       }
       return groupDir;
