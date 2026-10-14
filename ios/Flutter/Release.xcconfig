@@ -11,3 +11,7 @@ OTHER_LDFLAGS = $(inherited) $(CORE_OTHER_LDFLAGS)
 // linked Go exports with dlsym, and the default release strip removes them.
 STRIP_INSTALLED_PRODUCT = NO
 DEPLOYMENT_POSTPROCESSING = NO
+
+// The cgo export stubs (_invokeMethod etc.) have no static referencer —
+// dlsym resolves them at runtime — so dead-code stripping deletes them.
+DEAD_CODE_STRIPPING = NO

@@ -120,6 +120,23 @@ jobs:
             echo "no setup hook log; the hook did not run"
           fi
 
+      # Final gate: the Runner binary must carry the Go exports as global
+      # symbols or the Swift bridge cannot resolve them on the device.
+      # Fails here instead of on the phone.
+      - name: Verify Go exports in the Runner binary
+        run: |
+          APP="build/ios/dd/Build/Products/Release-iphoneos/Runner.app"
+          for sym in invokeMethod startTUN quickSetup setEventListener \
+                     stopTun forceGC updateDns getTraffic getTotalTraffic \
+                     protect result release_object free_string; do
+            nm -gU "$APP/Runner" | grep -q "_${sym}$" || {
+              echo "::error::_$(echo ${sym}) missing (global) from Runner"
+              nm -gU "$APP/Runner" | head -20
+              exit 1
+            }
+          done
+          echo "Runner export check passed"
+
       - name: Package unsigned IPA
         run: |
           mkdir -p build/ipa/Payload
