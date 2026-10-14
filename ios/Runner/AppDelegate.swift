@@ -79,7 +79,7 @@ enum VPNManager {
           completion("save preferences failed: \(error.localizedDescription)")
           return
         }
-        manager.loadFromPreferences { _, loadError in
+        manager.loadFromPreferences { loadError in
           if let loadError {
             completion("reload failed: \(loadError.localizedDescription)")
             return
