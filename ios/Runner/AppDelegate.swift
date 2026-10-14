@@ -21,48 +21,24 @@ import UIKit
   }
 }
 
-/// Swift bridge to the Go core dylib (`libclash.dylib`, embedded by the
-/// build into `Runner.app/Frameworks/`).
+/// Swift bridge to the Go core, statically linked into the Runner binary.
 ///
-/// The core exports a plain C ABI (see `core/bride.h` and the `//export`
-/// functions in `core/lib.go`); this bridge resolves the symbols with
-/// `dlsym` at runtime, so no bridging header or project file changes are
-/// needed. Host callbacks required by the core are registered with
-/// permissive iOS semantics: `protect` always succeeds (there is no
-/// VpnService bypass on iOS) and UID/package resolution reports "unknown".
+/// The core's C ABI (ios/Runner/hisvpn-core.h + core/bride.h) is imported
+/// through the bridging header and referenced DIRECTLY — no dlsym, no
+/// runtime symbol lookup: the linker binds every call at build time.
+/// Host callbacks registered with permissive iOS semantics: `protect`
+/// always succeeds (no VpnService bypass on iOS) and UID/package
+/// resolution reports "unknown".
 ///
 /// Status: the core runs in-process and answers `invokeMethod`, `init`,
 /// `getTraffic`, `getTotalTraffic`, `updateDns`, `forceGC` and `shutdown`.
-/// `start` and `stop` return false until the NetworkExtension tunnel
-/// target (`ios/VPNExtension/`) is wired up — see docs/IOS_BUILD.md.
+/// `start`/`stop` acknowledge the lifecycle so CoreLib.startListener
+/// proceeds; the real tunnel arrives with the NetworkExtension target
+/// (see ios/VPNExtension/ and docs/IOS_BUILD.md).
 final class CoreBridge {
   static let shared = CoreBridge()
 
   private var channel: FlutterMethodChannel?
-  /// Set when the core's exports cannot be resolved; surfaced through the
-  /// CORE_ERROR channel reply so it reaches the in-app log page.
-  private var coreLoadError: String = "core not loaded"
-
-  private typealias InvokeMethodFn = @convention(c) (
-    UnsafeMutableRawPointer?, UnsafePointer<CChar>?
-  ) -> Void
-  private typealias SetEventListenerFn = @convention(c) (UnsafeMutableRawPointer?) -> Void
-  private typealias GetTrafficFn = @convention(c) (Bool) -> UnsafeMutablePointer<CChar>?
-  private typealias StopTunFn = @convention(c) () -> Void
-  private typealias ForceGCFn = @convention(c) () -> Void
-  private typealias UpdateDnsFn = @convention(c) (UnsafePointer<CChar>?) -> Void
-  private typealias ReleaseObjectFn = @convention(c) (UnsafeMutableRawPointer?) -> Void
-  private typealias FreeStringFn = @convention(c) (UnsafeMutablePointer<CChar>?) -> Void
-
-  private var invokeMethodFn: InvokeMethodFn?
-  private var setEventListenerFn: SetEventListenerFn?
-  private var getTrafficFn: GetTrafficFn?
-  private var getTotalTrafficFn: GetTrafficFn?
-  private var stopTunFn: StopTunFn?
-  private var forceGCFn: ForceGCFn?
-  private var updateDnsFn: UpdateDnsFn?
-  private var releaseObjectFn: ReleaseObjectFn?
-  private var freeStringFn: FreeStringFn?
 
   private final class CallbackBox {
     let onResult: (String?) -> Void
@@ -71,16 +47,6 @@ final class CoreBridge {
     }
   }
 
-  private func symbol(_ name: String) -> UnsafeMutableRawPointer? {
-    // The Go core is statically linked into the Runner binary
-    // (OTHER_LDFLAGS -force_load in ios/Flutter/*.xcconfig), so its exports
-    // resolve through the global symbol table; RTLD_DEFAULT is just NULL.
-    dlsym(nil, name)
-  }
-
-  /// Resolves the statically linked Go core and installs the
-  /// `com.hisvpn/service` method channel. A missing export degrades to a
-  /// logged warning — the UI keeps working.
   func install(messenger: FlutterBinaryMessenger) {
     let channel = FlutterMethodChannel(
       name: "com.hisvpn/service",
@@ -90,73 +56,21 @@ final class CoreBridge {
     channel.setMethodCallHandler { [weak self] call, result in
       self?.onMethodCall(call, result: result)
     }
-
-    invokeMethodFn = unsafeBitCast(symbol("invokeMethod"), to: InvokeMethodFn.self)
-    setEventListenerFn = unsafeBitCast(symbol("setEventListener"), to: SetEventListenerFn.self)
-    getTrafficFn = unsafeBitCast(symbol("getTraffic"), to: GetTrafficFn.self)
-    getTotalTrafficFn = unsafeBitCast(symbol("getTotalTraffic"), to: GetTrafficFn.self)
-    stopTunFn = unsafeBitCast(symbol("stopTun"), to: StopTunFn.self)
-    forceGCFn = unsafeBitCast(symbol("forceGC"), to: ForceGCFn.self)
-    updateDnsFn = unsafeBitCast(symbol("updateDns"), to: UpdateDnsFn.self)
-    releaseObjectFn = unsafeBitCast(symbol("release_object_func"), to: ReleaseObjectFn.self)
-    freeStringFn = unsafeBitCast(symbol("free_string_func"), to: FreeStringFn.self)
-
-    guard invokeMethodFn != nil else {
-      coreLoadError = "core exports not found in the Runner binary (static link missing? check ios/Flutter/*.xcconfig force_load)"
-      NSLog("[HISVPN] %@", coreLoadError)
-      return
-    }
-
     installHostCallbacks()
     NSLog("[HISVPN] Core bridge installed")
   }
 
-  /// Registers the host callbacks the core calls through (bride.h). Each
-  /// exported slot is a C function-pointer variable in the dylib.
+  /// Assigns the host callbacks the Go core invokes (bride.h function
+  /// pointer variables, statically linked — plain Swift-visible globals).
   private func installHostCallbacks() {
-    guard
-      let releasePtr = symbol("release_object_func"),
-      let freeStringPtr = symbol("free_string_func"),
-      let protectPtr = symbol("protect_func"),
-      let resolveUidPtr = symbol("resolve_uid_func"),
-      let resolvePackagePtr = symbol("resolve_package_func"),
-      let resultPtr = symbol("result_func")
-    else {
-      NSLog("[HISVPN] core callback slots missing; bridge stays passive")
-      return
-    }
-
     // C function pointers must not capture context; route through a global.
     CoreBridgeHost.bridge = self
-
-    func store(_ closure: UnsafeMutableRawPointer, into slot: UnsafeMutableRawPointer) {
-      slot.assumingMemoryBound(to: UnsafeMutableRawPointer?.self).pointee = closure
-    }
-
-    store(
-      unsafeBitCast(CoreBridgeHost.releaseObject, to: UnsafeMutableRawPointer.self),
-      into: releasePtr
-    )
-    store(
-      unsafeBitCast(CoreBridgeHost.freeString, to: UnsafeMutableRawPointer.self),
-      into: freeStringPtr
-    )
-    store(
-      unsafeBitCast(CoreBridgeHost.protect, to: UnsafeMutableRawPointer.self),
-      into: protectPtr
-    )
-    store(
-      unsafeBitCast(CoreBridgeHost.resolveUid, to: UnsafeMutableRawPointer.self),
-      into: resolveUidPtr
-    )
-    store(
-      unsafeBitCast(CoreBridgeHost.resolvePackage, to: UnsafeMutableRawPointer.self),
-      into: resolvePackagePtr
-    )
-    store(
-      unsafeBitCast(CoreBridgeHost.resultFn, to: UnsafeMutableRawPointer.self),
-      into: resultPtr
-    )
+    release_object_func = CoreBridgeHost.releaseObject
+    free_string_func = CoreBridgeHost.freeString
+    protect_func = CoreBridgeHost.protect
+    resolve_uid_func = CoreBridgeHost.resolveUid
+    resolve_package_func = CoreBridgeHost.resolvePackage
+    result_func = CoreBridgeHost.resultFn
   }
 
   // MARK: - Channel
@@ -177,16 +91,18 @@ final class CoreBridge {
       }
       invokeCoreMethod(data, result: result)
     case "getTraffic":
-      result(takeCString(getTrafficFn?(false)))
+      result(takeCString(getTraffic(false)))
     case "getTotalTraffic":
-      result(takeCString(getTotalTrafficFn?(false)))
+      result(takeCString(getTotalTraffic(false)))
     case "updateDns":
       if let dns = call.arguments as? String {
-        dns.withCString { pointer in updateDnsFn?(pointer) }
+        dns.withCString { pointer in
+          updateDns(UnsafeMutablePointer(mutating: pointer))
+        }
       }
       result(nil)
     case "forceGC":
-      forceGCFn?()
+      forceGC()
       result(nil)
     case "start", "stop":
       // The NetworkExtension tunnel target is not wired up yet (see
@@ -204,10 +120,6 @@ final class CoreBridge {
   }
 
   private func invokeCoreMethod(_ data: String, result: @escaping FlutterResult) {
-    guard let invokeMethodFn else {
-      result(FlutterError(code: "CORE_ERROR", message: coreLoadError, details: nil))
-      return
-    }
     let box = makeCallbackBox { response in
       guard let response else {
         result(nil)
@@ -216,19 +128,18 @@ final class CoreBridge {
       result(FlutterStandardTypedData(bytes: Data(response.utf8)))
     }
     data.withCString { pointer in
-      invokeMethodFn(box, pointer)
+      invokeMethod(box, UnsafeMutablePointer(mutating: pointer))
     }
   }
 
   private func setEventListener() {
-    guard let setEventListenerFn else { return }
     let box = makeCallbackBox { [weak self] response in
       guard let self, let response else { return }
       DispatchQueue.main.async {
         self.channel?.invokeMethod("event", arguments: response)
       }
     }
-    setEventListenerFn(box)
+    setEventListener(box)
   }
 
   // MARK: - Callback plumbing
@@ -252,7 +163,7 @@ final class CoreBridge {
 
   private func takeCString(_ pointer: UnsafeMutablePointer<CChar>?) -> String? {
     guard let pointer else { return nil }
-    defer { freeStringFn?(pointer) }
+    defer { free_string(pointer) }
     return String(cString: pointer)
   }
 }
