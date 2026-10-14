@@ -687,6 +687,7 @@
 		};
 		AA12EC400000000000000006 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9740EEB21CF90195004384FC /* Debug.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = VPNExtension/HISVPNVPN.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
@@ -712,6 +713,7 @@
 		};
 		AA12EC400000000000000007 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7AFA3C8E1D35360C0083082E /* Release.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = VPNExtension/HISVPNVPN.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
