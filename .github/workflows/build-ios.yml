@@ -68,7 +68,8 @@ jobs:
           CGO_LDFLAGS="-isysroot $SDK -arch arm64 -miphoneos-version-min=15.0" \
           go build -tags with_gvisor -buildmode=c-archive -ldflags "-w -s" \
             -o "$OUT/libclash.a" .
-          mv libclash.h "$OUT/includes/libclash.h"
+          # The generated header lands next to the -o output, not in cwd.
+          mv "$OUT/libclash.h" "$OUT/includes/libclash.h"
           # Self-check: every symbol the Swift bridge dlsym's must be defined
           # here, so a wrong build fails the pipeline instead of the device.
           for sym in invokeMethod startTUN quickSetup setEventListener \
