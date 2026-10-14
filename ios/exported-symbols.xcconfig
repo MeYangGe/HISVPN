@@ -1,0 +1,29 @@
+// Linker flags that force the Go core's C exports into the binary's export
+// trie (what dlsym actually queries). -Wl,-exported_symbol is additive: it
+// never hides other symbols the way -exported_symbols_list would.
+//
+// The symbols:
+//   Go //export stubs (core/lib.go)
+//   Host callbacks + function-pointer slots (core/bride.c/.h)
+
+OTHER_LDFLAGS_EXTRA = -Wl,-exported_symbol,_invokeMethod \
+  -Wl,-exported_symbol,_startTUN \
+  -Wl,-exported_symbol,_quickSetup \
+  -Wl,-exported_symbol,_setEventListener \
+  -Wl,-exported_symbol,_stopTun \
+  -Wl,-exported_symbol,_forceGC \
+  -Wl,-exported_symbol,_updateDns \
+  -Wl,-exported_symbol,_getTraffic \
+  -Wl,-exported_symbol,_getTotalTraffic \
+  -Wl,-exported_symbol,_protect \
+  -Wl,-exported_symbol,_resolve_uid \
+  -Wl,-exported_symbol,_resolve_package \
+  -Wl,-exported_symbol,_result \
+  -Wl,-exported_symbol,_release_object \
+  -Wl,-exported_symbol,_free_string \
+  -Wl,-exported_symbol,_protect_func \
+  -Wl,-exported_symbol,_resolve_uid_func \
+  -Wl,-exported_symbol,_resolve_package_func \
+  -Wl,-exported_symbol,_result_func \
+  -Wl,-exported_symbol,_release_object_func \
+  -Wl,-exported_symbol,_free_string_func

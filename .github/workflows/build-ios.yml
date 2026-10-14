@@ -120,22 +120,24 @@ jobs:
             echo "no setup hook log; the hook did not run"
           fi
 
-      # Final gate: the Runner binary must carry the Go exports as global
-      # symbols or the Swift bridge cannot resolve them on the device.
-      # Fails here instead of on the phone.
+      # Final gate: the Runner binary must carry the Go exports in its export
+      # trie — what dlsym actually queries on the device. Fails here instead
+      # of on the phone.
       - name: Verify Go exports in the Runner binary
         run: |
           APP="build/ios/dd/Build/Products/Release-iphoneos/Runner.app"
+          EXPORTS=$(xcrun dyld_info -exports "$APP/Runner" 2>/dev/null || true)
           for sym in invokeMethod startTUN quickSetup setEventListener \
                      stopTun forceGC updateDns getTraffic getTotalTraffic \
-                     protect result release_object free_string; do
-            nm -gU "$APP/Runner" | grep -q "_${sym}$" || {
-              echo "::error::_$(echo ${sym}) missing (global) from Runner"
-              nm -gU "$APP/Runner" | head -20
+                     protect resolve_uid resolve_package result release_object \
+                     free_string protect_func result_func; do
+            echo "$EXPORTS" | grep -q "_${sym}$" || {
+              echo "::error::_${sym} missing from the export trie (dlsym target)"
+              echo "trie entries found: $(echo "$EXPORTS" | grep -c '_')"
               exit 1
             }
           done
-          echo "Runner export check passed"
+          echo "Runner export-trie check passed"
 
       - name: Package unsigned IPA
         run: |
