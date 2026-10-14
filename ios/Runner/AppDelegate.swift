@@ -78,7 +78,7 @@ final class CoreBridge {
   private func onMethodCall(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
     case "init":
-      setEventListener()
+      installEventListener()
       result("")
     case "invokeMethod":
       guard let data = call.arguments as? String else {
@@ -132,7 +132,7 @@ final class CoreBridge {
     }
   }
 
-  private func setEventListener() {
+  private func installEventListener() {
     let box = makeCallbackBox { [weak self] response in
       guard let self, let response else { return }
       DispatchQueue.main.async {
