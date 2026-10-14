@@ -91,6 +91,11 @@ class Bootstrap {
     DynamicColorSeeds dynamicColor,
   ) async {
     globalState.packageInfo = await PackageInfo.fromPlatform();
+    // The CI stamps the run number into the build number; printing it at
+    // startup makes the installed build identifiable from an exported log.
+    commonPrint.log(
+      'build ${globalState.packageInfo.version}+${globalState.packageInfo.buildNumber}',
+    );
     var config = await migration.run();
     _bootDecision = await bootGuard.evaluate(
       profileId: config.currentProfileId,

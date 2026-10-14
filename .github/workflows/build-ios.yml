@@ -91,7 +91,7 @@ jobs:
       # disabled to produce the unsigned Runner.app.
       - name: Build iOS app (unsigned)
         run: |
-          flutter build ios --release --no-codesign --config-only
+          flutter build ios --release --no-codesign --config-only --build-number=${GITHUB_RUN_NUMBER}
           cd ios
           set -o pipefail
           xcodebuild -workspace Runner.xcworkspace -scheme Runner \
