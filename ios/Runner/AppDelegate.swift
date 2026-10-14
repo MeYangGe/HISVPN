@@ -121,11 +121,16 @@ final class CoreBridge {
 
   private func invokeCoreMethod(_ data: String, result: @escaping FlutterResult) {
     let box = makeCallbackBox { response in
-      guard let response else {
-        result(nil)
-        return
+      // The core answers on a Go thread; a FlutterMethodChannel reply must
+      // happen on the platform thread (the Android bridge wraps the same
+      // rule with its MainThreadResult).
+      DispatchQueue.main.async {
+        guard let response else {
+          result(nil)
+          return
+        }
+        result(FlutterStandardTypedData(bytes: Data(response.utf8)))
       }
-      result(FlutterStandardTypedData(bytes: Data(response.utf8)))
     }
     data.withCString { pointer in
       invokeMethod(box, UnsafeMutablePointer(mutating: pointer))
