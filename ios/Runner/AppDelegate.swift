@@ -30,7 +30,7 @@ import UIKit
       case "appGroupPath":
         result(
           FileManager.default.containerURL(
-            forSecurityApplicationGroupIdentifier: "group.9e357262a457fc58.4"
+            forSecurityApplicationGroupIdentifier: VPNManager.appGroupId
           )?.path
         )
       default:
@@ -44,8 +44,14 @@ import UIKit
 /// tunnel configuration is what triggers the system's permission prompt.
 @available(iOS 13.0, *)
 enum VPNManager {
-  static let bundleId = "app.carambola5307.spinach7929.HISVPNVPN"
-  static let group = "group.9e357262a457fc58.4"
+  /// The tunnel extension's bundle id is the app's own id plus a fixed
+  /// suffix; both come from the build, so nothing is hardcoded per-signer.
+  static var bundleId: String { "\(Bundle.main.bundleIdentifier ?? "").HISVPNVPN" }
+  /// The shared container id, stamped into the Info.plist at build time
+  /// (ios/Brand.xcconfig → APP_GROUP_ID).
+  static var appGroupId: String {
+    Bundle.main.object(forInfoDictionaryKey: "HISVPNAppGroup") as? String ?? ""
+  }
 
   static func start(
     setupParams: String,

@@ -1,0 +1,12 @@
+// HISVPN brand identity — the single place to adapt the build to a signing
+// certificate or a developer account (App Store).
+//
+//   Certificate platform / super-sign profile: the values it assigned.
+//   App Store developer account:               your own App ID and group.
+//
+// The bundle id, the extension's bundle id (prefix + ".HISVPNVPN") and the
+// App Group identifier all derive from these two values everywhere —
+// pbxproj, entitlements, Info.plists and the Swift code (read at runtime
+// from the Info.plist).
+BUNDLE_ID_PREFIX = app.carambola5307.spinach7929
+APP_GROUP_ID = group.9e357262a457fc58.4

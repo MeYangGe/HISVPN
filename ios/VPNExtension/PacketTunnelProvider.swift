@@ -42,10 +42,13 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
     let dnsHijacking = (config["dnsHijacking"] as? Bool) ?? true
 
     // The App Group container is the core's homeDir — same files the app
-    // process maintains (config.yaml, profiles, database).
+    // process maintains (config.yaml, profiles, database). The id comes from
+    // the build (ios/Brand.xcconfig → APP_GROUP_ID → this Info.plist).
+    let appGroupId =
+      Bundle.main.object(forInfoDictionaryKey: "HISVPNAppGroup") as? String ?? ""
     guard
       let groupURL = FileManager.default.containerURL(
-        forSecurityApplicationGroupIdentifier: "group.9e357262a457fc58.4"
+        forSecurityApplicationGroupIdentifier: appGroupId
       )
     else {
       os_log("App Group container missing", log: log, type: .error)

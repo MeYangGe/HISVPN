@@ -1,4 +1,5 @@
 #include "Generated.xcconfig"
+#include "../Brand.xcconfig"
 #include "../exported-symbols.xcconfig"
 
 // Statically link the Go core (built into libclash/ios/arm64/libclash.a).
