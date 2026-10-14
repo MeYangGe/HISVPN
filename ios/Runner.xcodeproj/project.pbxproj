@@ -233,7 +233,7 @@
 			name = HISVPNVPN;
 			productName = HISVPNVPN;
 			productReference = AA12EC4000000000000000F1 /* HISVPNVPN.appex */;
-			productType = "com.apple.product-type.network-extension";
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
