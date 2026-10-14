@@ -45,7 +45,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
     // process maintains (config.yaml, profiles, database).
     guard
       let groupURL = FileManager.default.containerURL(
-        forSecurityApplicationGroupIdentifier: "group.com.hisvpn"
+        forSecurityApplicationGroupIdentifier: "group.9e357262a457fc58.4"
       )
     else {
       os_log("App Group container missing", log: log, type: .error)

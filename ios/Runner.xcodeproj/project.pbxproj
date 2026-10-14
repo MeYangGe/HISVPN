@@ -471,7 +471,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.hisvpn;
+				PRODUCT_BUNDLE_IDENTIFIER = app.carambola5307.spinach7929;
 				CODE_SIGN_ENTITLEMENTS = Runner/HISVPN.entitlements;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -653,7 +653,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.hisvpn;
+				PRODUCT_BUNDLE_IDENTIFIER = app.carambola5307.spinach7929;
 				CODE_SIGN_ENTITLEMENTS = Runner/HISVPN.entitlements;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -676,7 +676,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.hisvpn;
+				PRODUCT_BUNDLE_IDENTIFIER = app.carambola5307.spinach7929;
 				CODE_SIGN_ENTITLEMENTS = Runner/HISVPN.entitlements;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -700,7 +700,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				OTHER_LDFLAGS = "-force_load $(PROJECT_DIR)/../libclash/ios/arm64/libclash.a -lresolv -framework Foundation -framework CoreFoundation -framework Security -framework SystemConfiguration -framework CFNetwork";
-				PRODUCT_BUNDLE_IDENTIFIER = com.hisvpn.HISVPNVPN;
+				PRODUCT_BUNDLE_IDENTIFIER = app.carambola5307.spinach7929.HISVPNVPN;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				STRIP_INSTALLED_PRODUCT = NO;
@@ -725,7 +725,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				OTHER_LDFLAGS = "-force_load $(PROJECT_DIR)/../libclash/ios/arm64/libclash.a -lresolv -framework Foundation -framework CoreFoundation -framework Security -framework SystemConfiguration -framework CFNetwork";
-				PRODUCT_BUNDLE_IDENTIFIER = com.hisvpn.HISVPNVPN;
+				PRODUCT_BUNDLE_IDENTIFIER = app.carambola5307.spinach7929.HISVPNVPN;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				STRIP_INSTALLED_PRODUCT = NO;

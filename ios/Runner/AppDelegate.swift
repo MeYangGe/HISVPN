@@ -30,7 +30,7 @@ import UIKit
       case "appGroupPath":
         result(
           FileManager.default.containerURL(
-            forSecurityApplicationGroupIdentifier: "group.com.hisvpn"
+            forSecurityApplicationGroupIdentifier: "group.9e357262a457fc58.4"
           )?.path
         )
       default:
@@ -44,8 +44,8 @@ import UIKit
 /// tunnel configuration is what triggers the system's permission prompt.
 @available(iOS 13.0, *)
 enum VPNManager {
-  static let bundleId = "com.hisvpn.HISVPNVPN"
-  static let group = "group.com.hisvpn"
+  static let bundleId = "app.carambola5307.spinach7929.HISVPNVPN"
+  static let group = "group.9e357262a457fc58.4"
 
   static func start(
     setupParams: String,
