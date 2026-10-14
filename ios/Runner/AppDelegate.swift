@@ -96,8 +96,11 @@ final class CoreBridge {
       result(takeCString(getTotalTraffic(false)))
     case "updateDns":
       if let dns = call.arguments as? String {
+        // Same ownership contract: the core frees the pointer, so hand it a
+        // malloc'd copy rather than the Swift string's buffer.
         dns.withCString { pointer in
-          updateDns(UnsafeMutablePointer(mutating: pointer))
+          guard let copy = strdup(pointer) else { return }
+          updateDns(copy)
         }
       }
       result(nil)
@@ -132,8 +135,12 @@ final class CoreBridge {
         result(FlutterStandardTypedData(bytes: Data(response.utf8)))
       }
     }
+    // The core frees the argument through free_string_func (the same
+    // contract as Android), so it must be a malloc'd copy — a Swift string's
+    // internal buffer is not.
     data.withCString { pointer in
-      invokeMethod(box, UnsafeMutablePointer(mutating: pointer))
+      guard let copy = strdup(pointer) else { return }
+      invokeMethod(box, copy)
     }
   }
 
