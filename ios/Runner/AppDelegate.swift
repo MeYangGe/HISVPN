@@ -193,9 +193,11 @@ final class CoreBridge {
       forceGCFn?()
       result(nil)
     case "start", "stop":
-      // The VPN lifecycle lives in the NetworkExtension tunnel provider;
-      // see ios/VPNExtension/ and docs/IOS_BUILD.md.
-      result(false)
+      // The NetworkExtension tunnel target is not wired up yet (see
+      // ios/VPNExtension/); the in-app core listener lifecycle still runs,
+      // so acknowledge the lifecycle calls to let CoreLib.startListener
+      // proceed. Real tunnel bring-up arrives with the extension.
+      result(true)
     case "shutdown":
       result(true)
     case "syncState", "getRunTime":

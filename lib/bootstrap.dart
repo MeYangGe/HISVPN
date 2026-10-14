@@ -130,7 +130,7 @@ class Bootstrap {
           WidgetsBinding.instance.platformDispatcher.locale,
     );
     await window?.init(version, config.windowProps);
-    if (system.isAndroid) {
+    if (system.isAndroid || system.isIOS) {
       await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     }
     return container;
