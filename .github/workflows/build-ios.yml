@@ -75,7 +75,11 @@ jobs:
             -o "$OUT/HISVPNCore" \
             -Wl,-force_load,"$OUT/libclash.a" \
             "$OUT/libclash.a" \
-            -framework CoreFoundation
+            -framework Foundation \
+            -framework CoreFoundation \
+            -framework Security \
+            -framework SystemConfiguration \
+            -framework CFNetwork
           FW="$OUT/HISVPNCore.framework"
           mkdir -p "$FW"
           mv "$OUT/HISVPNCore" "$FW/HISVPNCore"
