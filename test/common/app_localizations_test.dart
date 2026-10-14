@@ -239,4 +239,51 @@ void main() {
       );
     });
   });
+
+  group('friendlyCoreErrorMessage', () {
+    test('maps mihomo timeout log lines to a friendly message', () {
+      const error = CoreMethodException(
+        code: 'CORE_ERROR',
+        message:
+            '🇯🇵 JP 03 failed to get the second response from http://www.gstatic.com/generate_204: context deadline exceeded',
+      );
+      expect(
+        userFacingErrorMessage(error, appLocalizations),
+        appLocalizations.coreErrorTimeout,
+      );
+    });
+
+    test('maps cancelled tests to a friendly message', () {
+      const error = CoreMethodException(
+        code: 'CORE_ERROR',
+        message: 'request canceled: context canceled',
+      );
+      expect(
+        userFacingErrorMessage(error, appLocalizations),
+        appLocalizations.coreErrorCancelled,
+      );
+    });
+
+    test('maps unreachable nodes to a friendly message', () {
+      const error = CoreMethodException(
+        code: 'CORE_ERROR',
+        message: 'dial tcp 1.2.3.4:443: connect: connection refused',
+      );
+      expect(
+        userFacingErrorMessage(error, appLocalizations),
+        appLocalizations.coreErrorUnreachable,
+      );
+    });
+
+    test('keeps unrecognized core messages verbatim', () {
+      const error = CoreMethodException(
+        code: 'CORE_ERROR',
+        message: 'some future core message',
+      );
+      expect(
+        userFacingErrorMessage(error, appLocalizations),
+        'some future core message',
+      );
+    });
+  });
 }

@@ -777,5 +777,8 @@
   "large": "Large",
   "extraLarge": "Extra large",
   "switchProfile": "Switch profile",
-  "lastUpdated": "Last updated"
+  "lastUpdated": "Last updated",
+  "coreErrorTimeout": "The node did not respond in time — it may be offline or too slow. Try another node.",
+  "coreErrorCancelled": "The operation was cancelled.",
+  "coreErrorUnreachable": "Could not reach the node server (refused, DNS failure or dropped connection)."
 }

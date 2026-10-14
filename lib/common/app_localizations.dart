@@ -24,10 +24,40 @@ String? coreLaunchBlockedMessage(
 String userFacingErrorMessage(Object error, AppLocalizations appLocalizations) {
   return networkErrorMessage(error, appLocalizations) ??
       coreLaunchBlockedMessage(error, appLocalizations) ??
+      friendlyCoreErrorMessage(error, appLocalizations) ??
       switch (error) {
         CoreMethodException(:final message) => message,
         _ => error.toString(),
       };
+}
+
+/// The core surfaces proxy failures as mihomo's raw Go log lines ("context
+/// deadline exceeded", "connection refused"...). Those are developer speak —
+/// translate the known patterns into something a user can act on and keep
+/// the raw text in the log page.
+String? friendlyCoreErrorMessage(Object error, AppLocalizations appLocalizations) {
+  final raw = switch (error) {
+    CoreMethodException(:final message) => message,
+    _ => error.toString(),
+  };
+  if (raw.isEmpty) {
+    return null;
+  }
+  final lower = raw.toLowerCase();
+  if (lower.contains('context deadline exceeded') || lower.contains('i/o timeout')) {
+    return appLocalizations.coreErrorTimeout;
+  }
+  if (lower.contains('context canceled')) {
+    return appLocalizations.coreErrorCancelled;
+  }
+  if (lower.contains('connection refused') ||
+      lower.contains('no such host') ||
+      lower.contains('connection reset') ||
+      lower.contains('unexpected eof') ||
+      lower.contains('broken pipe')) {
+    return appLocalizations.coreErrorUnreachable;
+  }
+  return null;
 }
 
 Locale? getLocaleForString(String? localString) {

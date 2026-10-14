@@ -777,5 +777,8 @@
   "large": "大",
   "extraLarge": "特大",
   "switchProfile": "プロファイルを切り替え",
-  "lastUpdated": "最終更新"
+  "lastUpdated": "最終更新",
+  "coreErrorTimeout": "ノードが時間内に応答しませんでした。停止中か低速の可能性があります。別のノードをお試しください。",
+  "coreErrorCancelled": "操作はキャンセルされました。",
+  "coreErrorUnreachable": "ノードサーバーに接続できませんでした（接続拒否、DNS解決失敗、または切断）。"
 }

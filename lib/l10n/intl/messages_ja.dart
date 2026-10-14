@@ -331,6 +331,15 @@ class MessageLookup extends MessageLookupByLibrary {
     "coreBlockedBySmartAppControlTip": MessageLookupByLibrary.simpleMessage(
       "Windows のスマート アプリ コントロールが、署名されていない HISVPNCore.exe をブロックしました。Windows セキュリティ → アプリとブラウザーの制御 → スマート アプリ コントロールの設定で「オフ」を選び、HISVPN を再起動してください。一度オフにすると、Windows を再インストールしない限り再度オンにはできません。",
     ),
+    "coreErrorCancelled": MessageLookupByLibrary.simpleMessage(
+      "操作はキャンセルされました。",
+    ),
+    "coreErrorTimeout": MessageLookupByLibrary.simpleMessage(
+      "ノードが時間内に応答しませんでした。停止中か低速の可能性があります。別のノードをお試しください。",
+    ),
+    "coreErrorUnreachable": MessageLookupByLibrary.simpleMessage(
+      "ノードサーバーに接続できませんでした（接続拒否、DNS解決失敗、または切断）。",
+    ),
     "coreStatus": MessageLookupByLibrary.simpleMessage("コアの状態"),
     "country": MessageLookupByLibrary.simpleMessage("地域"),
     "crashDetected": MessageLookupByLibrary.simpleMessage("クラッシュを検出しました"),

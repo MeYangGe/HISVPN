@@ -6447,6 +6447,36 @@ class AppLocalizations {
       args: [],
     );
   }
+
+  /// `The node did not respond in time — it may be offline or too slow. Try another node.`
+  String get coreErrorTimeout {
+    return Intl.message(
+      'The node did not respond in time — it may be offline or too slow. Try another node.',
+      name: 'coreErrorTimeout',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The operation was cancelled.`
+  String get coreErrorCancelled {
+    return Intl.message(
+      'The operation was cancelled.',
+      name: 'coreErrorCancelled',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Could not reach the node server (refused, DNS failure or dropped connection).`
+  String get coreErrorUnreachable {
+    return Intl.message(
+      'Could not reach the node server (refused, DNS failure or dropped connection).',
+      name: 'coreErrorUnreachable',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalizations> {

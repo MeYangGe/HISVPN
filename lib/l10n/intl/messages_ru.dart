@@ -417,6 +417,15 @@ class MessageLookup extends MessageLookupByLibrary {
     "coreBlockedBySmartAppControlTip": MessageLookupByLibrary.simpleMessage(
       "Smart App Control в Windows заблокировал неподписанный HISVPNCore.exe. Откройте Безопасность Windows → Управление приложениями и браузером → Параметры Smart App Control, выберите «Выкл.» и снова запустите HISVPN. Повторно включить Smart App Control без переустановки Windows нельзя.",
     ),
+    "coreErrorCancelled": MessageLookupByLibrary.simpleMessage(
+      "Операция отменена.",
+    ),
+    "coreErrorTimeout": MessageLookupByLibrary.simpleMessage(
+      "Узел не ответил вовремя — возможно, он недоступен или слишком медленный. Попробуйте другой узел.",
+    ),
+    "coreErrorUnreachable": MessageLookupByLibrary.simpleMessage(
+      "Не удалось подключиться к серверу узла (отказ, ошибка DNS или обрыв соединения).",
+    ),
     "coreStatus": MessageLookupByLibrary.simpleMessage("Статус ядра"),
     "country": MessageLookupByLibrary.simpleMessage("Регион"),
     "crashDetected": MessageLookupByLibrary.simpleMessage("Обнаружен сбой"),
@@ -755,9 +764,10 @@ class MessageLookup extends MessageLookupByLibrary {
     "inputRuleContent": MessageLookupByLibrary.simpleMessage(
       "Введите содержимое правила",
     ),
-    "installedAppsPermissionDeniedMessage": MessageLookupByLibrary.simpleMessage(
-      "Разрешение на список приложений отклонено, поэтому установленные приложения недоступны. Предоставьте его вручную в системных настройках.",
-    ),
+    "installedAppsPermissionDeniedMessage":
+        MessageLookupByLibrary.simpleMessage(
+          "Разрешение на список приложений отклонено, поэтому установленные приложения недоступны. Предоставьте его вручную в системных настройках.",
+        ),
     "installedAppsPermissionDesc": MessageLookupByLibrary.simpleMessage(
       "Эта система не выдаёт список установленных приложений без разрешения. Предоставьте его, чтобы настроить прокси для отдельных приложений.",
     ),

@@ -402,6 +402,15 @@ class MessageLookup extends MessageLookupByLibrary {
     "coreBlockedBySmartAppControlTip": MessageLookupByLibrary.simpleMessage(
       "Windows Smart App Control blocked HISVPNCore.exe because it is not signed. Open Windows Security → App & browser control → Smart App Control settings, choose Off, then start HISVPN again. Smart App Control cannot be turned back on without reinstalling Windows.",
     ),
+    "coreErrorCancelled": MessageLookupByLibrary.simpleMessage(
+      "The operation was cancelled.",
+    ),
+    "coreErrorTimeout": MessageLookupByLibrary.simpleMessage(
+      "The node did not respond in time — it may be offline or too slow. Try another node.",
+    ),
+    "coreErrorUnreachable": MessageLookupByLibrary.simpleMessage(
+      "Could not reach the node server (refused, DNS failure or dropped connection).",
+    ),
     "coreStatus": MessageLookupByLibrary.simpleMessage("Core status"),
     "country": MessageLookupByLibrary.simpleMessage("Region"),
     "crashDetected": MessageLookupByLibrary.simpleMessage("Crash detected"),
@@ -732,9 +741,10 @@ class MessageLookup extends MessageLookupByLibrary {
     "inputRuleContent": MessageLookupByLibrary.simpleMessage(
       "Enter the rule content",
     ),
-    "installedAppsPermissionDeniedMessage": MessageLookupByLibrary.simpleMessage(
-      "The app list permission was denied, so installed apps cannot be listed. Please grant it manually in system settings.",
-    ),
+    "installedAppsPermissionDeniedMessage":
+        MessageLookupByLibrary.simpleMessage(
+          "The app list permission was denied, so installed apps cannot be listed. Please grant it manually in system settings.",
+        ),
     "installedAppsPermissionDesc": MessageLookupByLibrary.simpleMessage(
       "This system hides the installed app list until the permission is granted. Authorize it to configure the per-app proxy.",
     ),

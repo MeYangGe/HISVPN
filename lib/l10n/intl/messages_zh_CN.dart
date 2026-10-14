@@ -302,6 +302,13 @@ class MessageLookup extends MessageLookupByLibrary {
     "coreBlockedBySmartAppControlTip": MessageLookupByLibrary.simpleMessage(
       "Windows 智能应用控制拦截了未签名的 HISVPNCore.exe。请打开 Windows 安全中心 → 应用和浏览器控制 → 智能应用控制设置，选择「关闭」后重新启动 HISVPN。智能应用控制关闭后无法再开启，除非重装 Windows。",
     ),
+    "coreErrorCancelled": MessageLookupByLibrary.simpleMessage("操作已取消。"),
+    "coreErrorTimeout": MessageLookupByLibrary.simpleMessage(
+      "节点响应超时，可能不可用或速度太慢，建议换一个节点试试。",
+    ),
+    "coreErrorUnreachable": MessageLookupByLibrary.simpleMessage(
+      "无法连接节点服务器（拒绝连接、域名解析失败或连接被断开）。",
+    ),
     "coreStatus": MessageLookupByLibrary.simpleMessage("核心状态"),
     "country": MessageLookupByLibrary.simpleMessage("区域"),
     "crashDetected": MessageLookupByLibrary.simpleMessage("检测到崩溃"),

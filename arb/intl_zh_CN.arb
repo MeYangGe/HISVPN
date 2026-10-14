@@ -777,5 +777,8 @@
   "large": "大",
   "extraLarge": "超大",
   "switchProfile": "切换配置",
-  "lastUpdated": "上次更新"
+  "lastUpdated": "上次更新",
+  "coreErrorTimeout": "节点响应超时，可能不可用或速度太慢，建议换一个节点试试。",
+  "coreErrorCancelled": "操作已取消。",
+  "coreErrorUnreachable": "无法连接节点服务器（拒绝连接、域名解析失败或连接被断开）。"
 }
