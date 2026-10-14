@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:hisvpn/common/common.dart';
 import 'package:hisvpn/enum/enum.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -33,7 +34,7 @@ class AppPath {
 
   AppPath._internal() {
     appDirPath = join(dirname(Platform.resolvedExecutable));
-    supportDirectory().then((value) {
+    _resolveDataDir().then((value) {
       dataDir.complete(value);
     });
     temporaryDirectory().then((value) {
@@ -42,6 +43,37 @@ class AppPath {
     cacheDirectory().then((value) {
       cacheDir.complete(value);
     });
+  }
+
+  /// On iOS the home directory must live in the App Group container so the
+  /// NetworkExtension tunnel process reads the same database, profiles and
+  /// config.yaml the app writes. Everywhere else keeps the support dir.
+  Future<Directory> _resolveDataDir() async {
+    final fallback = await supportDirectory();
+    if (!Platform.isIOS) {
+      return fallback;
+    }
+    try {
+      final groupPath = await const MethodChannel('$packageName/app')
+          .invokeMethod<String>('appGroupPath');
+      if (groupPath == null || groupPath.isEmpty) {
+        return fallback;
+      }
+      final groupDir = Directory(groupPath);
+      await groupDir.create(recursive: true);
+      // One-shot migration from the pre-tunnel sandbox layout so existing
+      // subscriptions and settings survive the move.
+      if (groupDir.listSync().isEmpty &&
+          fallback.existsSync() &&
+          fallback.listSync().isNotEmpty) {
+        for (final entity in fallback.listSync()) {
+          entity.renameSync(join(groupPath, basename(entity.path)));
+        }
+      }
+      return groupDir;
+    } catch (_) {
+      return fallback;
+    }
   }
 
   factory AppPath() {

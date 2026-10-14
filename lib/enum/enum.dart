@@ -439,7 +439,7 @@ enum DashboardWidget {
   trafficUsage,
   networkDetection,
   tunButton(platforms: desktopPlatforms),
-  vpnButton(platforms: [SupportPlatform.Android, SupportPlatform.iOS]),
+  vpnButton(platforms: [SupportPlatform.Android]),
   systemProxyButton(platforms: desktopPlatforms),
   intranetIp,
   memoryInfo,

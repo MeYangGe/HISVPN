@@ -126,6 +126,21 @@ jobs:
       - name: Verify Go exports in the Runner binary
         run: |
           APP="build/ios/dd/Build/Products/Release-iphoneos/Runner.app"
+          # The tunnel extension must be embedded with the core statically
+          # linked into it as well.
+          APPEX="$APP/PlugIns/HISVPNVPN.appex/HISVPNVPN"
+          test -f "$APPEX" || {
+            echo "::error::HISVPNVPN.appex not embedded in Runner.app"
+            find "$APP" -maxdepth 2 | head -20
+            exit 1
+          }
+          for sym in startTUN quickSetup stopTun protect; do
+            nm -gU "$APPEX" | grep -q "_${sym}$" || {
+              echo "::error::_${sym} missing from the tunnel extension binary"
+              exit 1
+            }
+          done
+          echo "tunnel extension check passed"
           EXPORTS=$(xcrun dyld_info -exports "$APP/Runner" 2>/dev/null || true)
           for sym in invokeMethod startTUN quickSetup setEventListener \
                      stopTun forceGC updateDns getTraffic getTotalTraffic \

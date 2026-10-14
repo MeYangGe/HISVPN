@@ -1,4 +1,5 @@
 import Flutter
+import NetworkExtension
 import UIKit
 
 @main
@@ -18,6 +19,86 @@ import UIKit
       return
     }
     CoreBridge.shared.install(messenger: registrar.messenger())
+    // The app-level channel answers the shared container path the Dart side
+    // resolves its home directory from.
+    let appChannel = FlutterMethodChannel(
+      name: "com.hisvpn/app",
+      binaryMessenger: registrar.messenger()
+    )
+    appChannel.setMethodCallHandler { call, result in
+      switch call.method {
+      case "appGroupPath":
+        result(
+          FileManager.default.containerURL(
+            securityGroupDomainID: "group.com.hisvpn"
+          )?.path
+        )
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+  }
+}
+
+/// VPN lifecycle through NETunnelProviderManager: creating and saving the
+/// tunnel configuration is what triggers the system's permission prompt.
+@available(iOS 13.0, *)
+enum VPNManager {
+  static let bundleId = "com.hisvpn.HISVPNVPN"
+  static let group = "group.com.hisvpn"
+
+  static func start(
+    setupParams: String,
+    stack: String,
+    ipv6: Bool,
+    dnsHijacking: Bool,
+    completion: @escaping (String?) -> Void
+  ) {
+    NETunnelProviderManager.loadAllFromPreferences { managers, error in
+      if let error {
+        completion("load preferences failed: \(error.localizedDescription)")
+        return
+      }
+      let manager = managers?.first ?? NETunnelProviderManager()
+      let tunnel = NETunnelProviderProtocol()
+      tunnel.providerBundleIdentifier = bundleId
+      tunnel.serverAddress = "HISVPN"
+      tunnel.providerConfiguration = [
+        "setupParams": setupParams as NSString,
+        "stack": stack as NSString,
+        "ipv6": (ipv6 ? true : false) as NSObject,
+        "dnsHijacking": (dnsHijacking ? true : false) as NSObject,
+      ]
+      manager.protocolConfiguration = tunnel
+      manager.localizedDescription = "HISVPN"
+      manager.isEnabled = true
+      // This save is what pops the system's "allow adding VPN
+      // configurations" password / biometric prompt.
+      manager.saveToPreferences { error in
+        if let error {
+          completion("save preferences failed: \(error.localizedDescription)")
+          return
+        }
+        manager.loadFromPreferences { _, loadError in
+          if let loadError {
+            completion("reload failed: \(loadError.localizedDescription)")
+            return
+          }
+          do {
+            try manager.connection.startVPNTunnel()
+            completion(nil)
+          } catch {
+            completion("start tunnel failed: \(error.localizedDescription)")
+          }
+        }
+      }
+    }
+  }
+
+  static func stop() {
+    NETunnelProviderManager.loadAllFromPreferences { managers, _ in
+      managers?.forEach { $0.connection.stopVPNTunnel() }
+    }
   }
 }
 
@@ -39,6 +120,12 @@ final class CoreBridge {
   static let shared = CoreBridge()
 
   private var channel: FlutterMethodChannel?
+  /// The last SharedState payload Dart pushed: keeps setupParams (selected
+  /// proxies) and the tun options for when the VPN tunnel is started.
+  private var lastSetupParams = "{\"selected-map\":{},\"test-url\":\"\"}"
+  private var lastStack = "mixed"
+  private var lastIpv6 = true
+  private var lastDnsHijacking = true
 
   private final class CallbackBox {
     let onResult: (String?) -> Void
@@ -107,16 +194,42 @@ final class CoreBridge {
     case "forceGC":
       forceGC()
       result(nil)
-    case "start", "stop":
-      // The NetworkExtension tunnel target is not wired up yet (see
-      // ios/VPNExtension/); the in-app core listener lifecycle still runs,
-      // so acknowledge the lifecycle calls to let CoreLib.startListener
-      // proceed. Real tunnel bring-up arrives with the extension.
+    case "start":
+      // Starting on iOS means bringing up the NetworkExtension tunnel: the
+      // system prompts for permission, the extension process runs the Go
+      // core from the shared container and owns the utun.
+      VPNManager.start(
+        setupParams: lastSetupParams,
+        stack: lastStack,
+        ipv6: lastIpv6,
+        dnsHijacking: lastDnsHijacking
+      ) { message in
+        result(message == nil)
+      }
+    case "stop":
+      VPNManager.stop()
       result(true)
     case "shutdown":
       result(true)
-    case "syncState", "getRunTime":
-      result(call.method == "getRunTime" ? 0 : "")
+    case "syncState":
+      if let payload = call.arguments as? String,
+         let data = payload.data(using: .utf8),
+         let state = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+      {
+        if let setup = state["setupParams"] as? [String: Any],
+           let setupData = try? JSONSerialization.data(withJSONObject: setup)
+        {
+          lastSetupParams = String(data: setupData, encoding: .utf8) ?? lastSetupParams
+        }
+        if let vpn = state["vpnOptions"] as? [String: Any] {
+          lastStack = vpn["stack"] as? String ?? lastStack
+          lastIpv6 = vpn["ipv6"] as? Bool ?? lastIpv6
+          lastDnsHijacking = vpn["dnsHijacking"] as? Bool ?? lastDnsHijacking
+        }
+      }
+      result("")
+    case "getRunTime":
+      result(0)
     default:
       result(FlutterMethodNotImplemented)
     }
