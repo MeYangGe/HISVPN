@@ -73,9 +73,9 @@ final class CoreBridge {
 
   private func symbol(_ name: String) -> UnsafeMutableRawPointer? {
     // The Go core is statically linked into the Runner binary
-    // (OTHER_LDFLAGS -force_load in ios/Flutter/*.xcconfig), so its
-    // exports resolve through the global symbol table.
-    dlsym(RTLD_DEFAULT, name)
+    // (OTHER_LDFLAGS -force_load in ios/Flutter/*.xcconfig), so its exports
+    // resolve through the global symbol table; RTLD_DEFAULT is just NULL.
+    dlsym(nil, name)
   }
 
   /// Resolves the statically linked Go core and installs the
