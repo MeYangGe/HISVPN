@@ -53,74 +53,37 @@ jobs:
           grep -A6 "user_defines" pubspec.yaml
 
       # Build the Go core for ios/arm64 explicitly. c-shared is not supported
-      # on ios/arm64, so the core is built as a c-archive, linked into a
-      # dylib with clang, and assembled into a proper framework bundle — bare
-      # dylibs dropped in Frameworks/ are rejected by dyld/hardened runtime
-      # and poorly handled by side-load signers.
+      # on ios/arm64, so the core is built as a c-archive that the Runner
+      # target statically links (see ios/Flutter/*.xcconfig force_load) —
+      # no dynamic library, no dlopen, no code-signing of embedded binaries.
       - name: Build Go core for ios/arm64
         run: |
           cd core
           SDK=$(xcrun --sdk iphoneos --show-sdk-path)
           echo "iphoneos SDK: $SDK"
           OUT=../libclash/ios/arm64
-          mkdir -p "$OUT"
+          mkdir -p "$OUT/includes"
           CGO_ENABLED=1 GOOS=ios GOARCH=arm64 CC=clang \
           CGO_CFLAGS="-isysroot $SDK -arch arm64 -miphoneos-version-min=15.0 -O3" \
           CGO_LDFLAGS="-isysroot $SDK -arch arm64 -miphoneos-version-min=15.0" \
           go build -tags with_gvisor -buildmode=c-archive -ldflags "-w -s" \
             -o "$OUT/libclash.a" .
-          clang -arch arm64 -isysroot "$SDK" -miphoneos-version-min=15.0 \
-            -dynamiclib \
-            -install_name @rpath/HISVPNCore.framework/HISVPNCore \
-            -o "$OUT/HISVPNCore" \
-            -Wl,-force_load,"$OUT/libclash.a" \
-            -framework Foundation \
-            -framework CoreFoundation \
-            -framework Security \
-            -framework SystemConfiguration \
-            -framework CFNetwork \
-            -lresolv
+          mv libclash.h "$OUT/includes/libclash.h"
           # Self-check: every symbol the Swift bridge dlsym's must be defined
-          # here, so a wrong link fails the build instead of the device.
+          # here, so a wrong build fails the pipeline instead of the device.
           for sym in invokeMethod startTUN quickSetup setEventListener \
                      stopTun forceGC updateDns getTraffic getTotalTraffic \
                      protect resolve_uid resolve_package result release_object \
                      free_string release_object_func free_string_func \
                      protect_func resolve_uid_func resolve_package_func \
                      result_func; do
-            nm -gU "$OUT/HISVPNCore" | grep -q "_${sym}$" || {
-              echo "::error::export '${sym}' missing from HISVPNCore"
-              nm -gU "$OUT/HISVPNCore" | head -20
+            nm -g "$OUT/libclash.a" | grep -q "_${sym}$" || {
+              echo "::error::export '${sym}' missing from libclash.a"
               exit 1
             }
           done
           echo "symbol self-check passed"
-          FW="$OUT/HISVPNCore.framework"
-          mkdir -p "$FW"
-          mv "$OUT/HISVPNCore" "$FW/HISVPNCore"
-          cat > "$FW/Info.plist" <<'PLIST'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>CFBundleExecutable</key>
-            <string>HISVPNCore</string>
-            <key>CFBundleIdentifier</key>
-            <string>com.hisvpn.HISVPNCore</string>
-            <key>CFBundleName</key>
-            <string>HISVPNCore</string>
-            <key>CFBundlePackageType</key>
-            <string>FMWK</string>
-            <key>CFBundleShortVersionString</key>
-            <string>1.0</string>
-            <key>CFBundleVersion</key>
-            <string>1</string>
-            <key>MinimumOSVersion</key>
-            <string>15.0</string>
-          </dict>
-          </plist>
-          PLIST
-          ls -lh "$FW"
+          ls -lh "$OUT"
 
       # Xcode 26 rejects a device build without a Development Team even with
       # flutter's --no-codesign; drive xcodebuild directly with signing
@@ -156,26 +119,16 @@ jobs:
             echo "no setup hook log; the hook did not run"
           fi
 
-      - name: Embed Go core framework into the app bundle
-        run: |
-          APP="build/ios/dd/Build/Products/Release-iphoneos/Runner.app"
-          FW="libclash/ios/arm64/HISVPNCore.framework"
-          test -f "$FW/HISVPNCore" || {
-            echo "::error::Go core framework missing"
-            exit 1
-          }
-          mkdir -p "$APP/Frameworks"
-          cp -R "$FW" "$APP/Frameworks/"
-
       - name: Package unsigned IPA
         run: |
           mkdir -p build/ipa/Payload
           cp -R build/ios/dd/Build/Products/Release-iphoneos/Runner.app build/ipa/Payload/
           cd build/ipa
-          zip -qry HISVPN-unsigned.ipa Payload
-          ls -lh HISVPN-unsigned.ipa
+          IPA="HISVPN-unsigned-r${GITHUB_RUN_NUMBER}.ipa"
+          zip -qry "$IPA" Payload
+          ls -lh "$IPA"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: HISVPN-unsigned-ipa
-          path: build/ipa/HISVPN-unsigned.ipa
+          name: HISVPN-unsigned-ipa-r${{ github.run_number }}
+          path: build/ipa/HISVPN-unsigned-r${{ github.run_number }}.ipa

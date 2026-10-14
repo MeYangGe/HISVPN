@@ -38,9 +38,8 @@ import UIKit
 final class CoreBridge {
   static let shared = CoreBridge()
 
-  private var handle: UnsafeMutableRawPointer?
   private var channel: FlutterMethodChannel?
-  /// Set when the core dylib cannot be loaded; surfaced through the
+  /// Set when the core's exports cannot be resolved; surfaced through the
   /// CORE_ERROR channel reply so it reaches the in-app log page.
   private var coreLoadError: String = "core not loaded"
 
@@ -73,13 +72,15 @@ final class CoreBridge {
   }
 
   private func symbol(_ name: String) -> UnsafeMutableRawPointer? {
-    guard let handle else { return nil }
-    return dlsym(handle, name)
+    // The Go core is statically linked into the Runner binary
+    // (OTHER_LDFLAGS -force_load in ios/Flutter/*.xcconfig), so its
+    // exports resolve through the global symbol table.
+    dlsym(RTLD_DEFAULT, name)
   }
 
-  /// Loads `libclash.dylib` from the app bundle and installs the
-  /// `com.hisvpn/service` method channel. A missing core or missing
-  /// symbols degrade to a logged warning — the UI keeps working.
+  /// Resolves the statically linked Go core and installs the
+  /// `com.hisvpn/service` method channel. A missing export degrades to a
+  /// logged warning — the UI keeps working.
   func install(messenger: FlutterBinaryMessenger) {
     let channel = FlutterMethodChannel(
       name: "com.hisvpn/service",
@@ -88,24 +89,6 @@ final class CoreBridge {
     self.channel = channel
     channel.setMethodCallHandler { [weak self] call, result in
       self?.onMethodCall(call, result: result)
-    }
-
-    let candidates = [
-      Bundle.main.privateFrameworksPath.map { "\($0)/HISVPNCore.framework/HISVPNCore" },
-      Bundle.main.privateFrameworksPath.map { "\($0)/libclash.dylib" },
-      Bundle.main.resourcePath.map { "\($0)/Frameworks/HISVPNCore.framework/HISVPNCore" },
-      Bundle.main.resourcePath.map { "\($0)/Frameworks/libclash.dylib" },
-    ].compactMap { $0 }
-    guard let path = candidates.first(where: { FileManager.default.fileExists(atPath: $0) }) else {
-      coreLoadError = "core not embedded; searched: \(candidates.joined(separator: ", "))"
-      NSLog("[HISVPN] %@", coreLoadError)
-      return
-    }
-    handle = dlopen(path, RTLD_NOW | RTLD_LOCAL)
-    guard handle != nil else {
-      coreLoadError = "dlopen failed: \(String(cString: dlerror()))"
-      NSLog("[HISVPN] %@", coreLoadError)
-      return
     }
 
     invokeMethodFn = unsafeBitCast(symbol("invokeMethod"), to: InvokeMethodFn.self)
@@ -119,7 +102,7 @@ final class CoreBridge {
     freeStringFn = unsafeBitCast(symbol("free_string_func"), to: FreeStringFn.self)
 
     guard invokeMethodFn != nil else {
-      coreLoadError = "core loaded but export 'invokeMethod' missing (dylib built without -force_load?)"
+      coreLoadError = "core exports not found in the Runner binary (static link missing? check ios/Flutter/*.xcconfig force_load)"
       NSLog("[HISVPN] %@", coreLoadError)
       return
     }
