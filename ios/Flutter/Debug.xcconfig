@@ -6,3 +6,8 @@
 // dlsym(RTLD_DEFAULT, ...).
 CORE_OTHER_LDFLAGS = -force_load $(PROJECT_DIR)/../libclash/ios/arm64/libclash.a -lresolv -framework Foundation -framework CoreFoundation -framework Security -framework SystemConfiguration -framework CFNetwork
 OTHER_LDFLAGS = $(inherited) $(CORE_OTHER_LDFLAGS)
+
+// Keep the global symbol table: the Swift bridge resolves the statically
+// linked Go exports with dlsym, and the default release strip removes them.
+STRIP_INSTALLED_PRODUCT = NO
+DEPLOYMENT_POSTPROCESSING = NO
