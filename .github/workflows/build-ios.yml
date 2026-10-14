@@ -74,12 +74,27 @@ jobs:
             -install_name @rpath/HISVPNCore.framework/HISVPNCore \
             -o "$OUT/HISVPNCore" \
             -Wl,-force_load,"$OUT/libclash.a" \
-            "$OUT/libclash.a" \
             -framework Foundation \
             -framework CoreFoundation \
             -framework Security \
             -framework SystemConfiguration \
-            -framework CFNetwork
+            -framework CFNetwork \
+            -lresolv
+          # Self-check: every symbol the Swift bridge dlsym's must be defined
+          # here, so a wrong link fails the build instead of the device.
+          for sym in invokeMethod startTUN quickSetup setEventListener \
+                     stopTun forceGC updateDns getTraffic getTotalTraffic \
+                     protect resolve_uid resolve_package result release_object \
+                     free_string release_object_func free_string_func \
+                     protect_func resolve_uid_func resolve_package_func \
+                     result_func; do
+            nm -gU "$OUT/HISVPNCore" | grep -q "_${sym}$" || {
+              echo "::error::export '${sym}' missing from HISVPNCore"
+              nm -gU "$OUT/HISVPNCore" | head -20
+              exit 1
+            }
+          done
+          echo "symbol self-check passed"
           FW="$OUT/HISVPNCore.framework"
           mkdir -p "$FW"
           mv "$OUT/HISVPNCore" "$FW/HISVPNCore"
