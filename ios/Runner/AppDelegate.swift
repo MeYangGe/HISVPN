@@ -40,6 +40,9 @@ final class CoreBridge {
 
   private var handle: UnsafeMutableRawPointer?
   private var channel: FlutterMethodChannel?
+  /// Set when the core dylib cannot be loaded; surfaced through the
+  /// CORE_ERROR channel reply so it reaches the in-app log page.
+  private var coreLoadError: String = "core not loaded"
 
   private typealias InvokeMethodFn = @convention(c) (
     UnsafeMutableRawPointer?, UnsafePointer<CChar>?
@@ -88,16 +91,20 @@ final class CoreBridge {
     }
 
     let candidates = [
+      Bundle.main.privateFrameworksPath.map { "\($0)/HISVPNCore.framework/HISVPNCore" },
       Bundle.main.privateFrameworksPath.map { "\($0)/libclash.dylib" },
+      Bundle.main.resourcePath.map { "\($0)/Frameworks/HISVPNCore.framework/HISVPNCore" },
       Bundle.main.resourcePath.map { "\($0)/Frameworks/libclash.dylib" },
     ].compactMap { $0 }
     guard let path = candidates.first(where: { FileManager.default.fileExists(atPath: $0) }) else {
-      NSLog("[HISVPN] Core dylib not embedded; bridge stays passive")
+      coreLoadError = "core not embedded; searched: \(candidates.joined(separator: ", "))"
+      NSLog("[HISVPN] %@", coreLoadError)
       return
     }
     handle = dlopen(path, RTLD_NOW | RTLD_LOCAL)
     guard handle != nil else {
-      NSLog("[HISVPN] dlopen failed: \(String(cString: dlerror()))")
+      coreLoadError = "dlopen failed: \(String(cString: dlerror()))"
+      NSLog("[HISVPN] %@", coreLoadError)
       return
     }
 
@@ -209,7 +216,7 @@ final class CoreBridge {
 
   private func invokeCoreMethod(_ data: String, result: @escaping FlutterResult) {
     guard let invokeMethodFn else {
-      result(FlutterError(code: "CORE_ERROR", message: "core not loaded", details: nil))
+      result(FlutterError(code: "CORE_ERROR", message: coreLoadError, details: nil))
       return
     }
     let box = makeCallbackBox { response in

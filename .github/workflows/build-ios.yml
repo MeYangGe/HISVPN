@@ -53,25 +53,54 @@ jobs:
           grep -A6 "user_defines" pubspec.yaml
 
       # Build the Go core for ios/arm64 explicitly. c-shared is not supported
-      # on ios/arm64, so the core is built as a c-archive and linked into a
-      # dylib with clang (side-loadable, embeds the same C ABI as the
-      # Android .so, see core/lib.go).
+      # on ios/arm64, so the core is built as a c-archive, linked into a
+      # dylib with clang, and assembled into a proper framework bundle — bare
+      # dylibs dropped in Frameworks/ are rejected by dyld/hardened runtime
+      # and poorly handled by side-load signers.
       - name: Build Go core for ios/arm64
         run: |
           cd core
           SDK=$(xcrun --sdk iphoneos --show-sdk-path)
           echo "iphoneos SDK: $SDK"
-          mkdir -p ../libclash/ios/arm64
+          OUT=../libclash/ios/arm64
+          mkdir -p "$OUT"
           CGO_ENABLED=1 GOOS=ios GOARCH=arm64 CC=clang \
           CGO_CFLAGS="-isysroot $SDK -arch arm64 -miphoneos-version-min=15.0 -O3" \
           CGO_LDFLAGS="-isysroot $SDK -arch arm64 -miphoneos-version-min=15.0" \
           go build -tags with_gvisor -buildmode=c-archive -ldflags "-w -s" \
-            -o ../libclash/ios/arm64/libclash.a .
+            -o "$OUT/libclash.a" .
           clang -arch arm64 -isysroot "$SDK" -miphoneos-version-min=15.0 \
-            -dynamiclib -o ../libclash/ios/arm64/libclash.dylib \
-            ../libclash/ios/arm64/libclash.a \
+            -dynamiclib \
+            -install_name @rpath/HISVPNCore.framework/HISVPNCore \
+            -o "$OUT/HISVPNCore" \
+            "$OUT/libclash.a" \
             -framework CoreFoundation
-          ls -lh ../libclash/ios/arm64/
+          FW="$OUT/HISVPNCore.framework"
+          mkdir -p "$FW"
+          mv "$OUT/HISVPNCore" "$FW/HISVPNCore"
+          cat > "$FW/Info.plist" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleExecutable</key>
+            <string>HISVPNCore</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.hisvpn.HISVPNCore</string>
+            <key>CFBundleName</key>
+            <string>HISVPNCore</string>
+            <key>CFBundlePackageType</key>
+            <string>FMWK</string>
+            <key>CFBundleShortVersionString</key>
+            <string>1.0</string>
+            <key>CFBundleVersion</key>
+            <string>1</string>
+            <key>MinimumOSVersion</key>
+            <string>15.0</string>
+          </dict>
+          </plist>
+          PLIST
+          ls -lh "$FW"
 
       # Xcode 26 rejects a device build without a Development Team even with
       # flutter's --no-codesign; drive xcodebuild directly with signing
@@ -107,15 +136,16 @@ jobs:
             echo "no setup hook log; the hook did not run"
           fi
 
-      - name: Embed Go core dylib into the app bundle
+      - name: Embed Go core framework into the app bundle
         run: |
           APP="build/ios/dd/Build/Products/Release-iphoneos/Runner.app"
-          test -f "libclash/ios/arm64/libclash.dylib" || {
-            echo "::error::Go core dylib missing"
+          FW="libclash/ios/arm64/HISVPNCore.framework"
+          test -f "$FW/HISVPNCore" || {
+            echo "::error::Go core framework missing"
             exit 1
           }
           mkdir -p "$APP/Frameworks"
-          cp libclash/ios/arm64/libclash.dylib "$APP/Frameworks/"
+          cp -R "$FW" "$APP/Frameworks/"
 
       - name: Package unsigned IPA
         run: |
